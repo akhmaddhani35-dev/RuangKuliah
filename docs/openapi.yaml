@@ -1,0 +1,1151 @@
+openapi: 3.1.0
+info:
+  title: API Sistem Manajemen Jadwal dan Tugas Kuliah
+  version: 1.0.0
+  description: >-
+    Kontrak API Laravel untuk React SPA. API memakai sesi cookie Sanctum,
+    bukan JWT. Semua rute memerlukan sesi terautentikasi dan email terverifikasi.
+    Permintaan perubahan data juga memerlukan X-XSRF-TOKEN dari
+    /sanctum/csrf-cookie. Konfigurasi origin dan CORS dijelaskan di api.md.
+servers:
+  - url: /api
+security:
+  - sessionCookie: []
+paths:
+  /user:
+    get:
+      summary: Identitas pengguna pada sesi aktif
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Identitas terautentikasi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/dashboard:
+    get:
+      summary: Ringkasan akademik dashboard
+      operationId: getDashboard
+      responses:
+        '200':
+          description: Ringkasan, jadwal hari ini, tugas, materi terbaru, dan ujian mendatang
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /v1/profile:
+    patch:
+      summary: Ubah profil pengguna aktif
+      operationId: updateProfile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/ProfileInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/profile/password:
+    patch:
+      summary: Ubah sandi pengguna aktif
+      operationId: updatePassword
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/PasswordInput'
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/students:
+    get:
+      summary: Daftar mahasiswa (admin)
+      operationId: listStudents
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          $ref: '#/components/responses/Paginated'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /v1/students/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      summary: Ubah data mahasiswa (admin)
+      operationId: updateStudent
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/StudentInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/mata-kuliahs:
+    get:
+      summary: Daftar mata kuliah yang terlihat
+      operationId: listCourses
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 12
+      responses:
+        '200':
+          $ref: '#/components/responses/SimplePage'
+    post:
+      summary: Tambah mata kuliah (admin)
+      operationId: createCourse
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/MataKuliahInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/mata-kuliahs/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Lihat mata kuliah yang terlihat
+      operationId: getCourse
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Ganti data mata kuliah milik sendiri atau yang dapat dikelola admin
+      operationId: replaceCourse
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/MataKuliahInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Ubah data mata kuliah milik sendiri atau yang dapat dikelola admin
+      operationId: updateCourse
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/MataKuliahInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Hapus mata kuliah yang belum digunakan
+      operationId: deleteCourse
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /v1/jadwals:
+    get:
+      summary: Daftar jadwal mingguan yang terlihat
+      operationId: listSchedules
+      responses:
+        '200':
+          $ref: '#/components/responses/Collection'
+    post:
+      summary: Tambah jadwal mingguan (admin)
+      operationId: createSchedule
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/JadwalInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/jadwals/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Lihat jadwal yang terlihat
+      operationId: getSchedule
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Ganti jadwal (admin)
+      operationId: replaceSchedule
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/JadwalInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Ubah jadwal (admin)
+      operationId: updateSchedule
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/JadwalInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Hapus jadwal (admin)
+      operationId: deleteSchedule
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/agenda-ujians:
+    get:
+      summary: Daftar agenda UTS/UAS yang terlihat
+      operationId: listExams
+      responses:
+        '200':
+          $ref: '#/components/responses/Collection'
+    post:
+      summary: Tambah agenda UTS/UAS (admin)
+      operationId: createExam
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/AgendaUjianInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/agenda-ujians/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Lihat agenda ujian yang terlihat
+      operationId: getExam
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Ganti agenda ujian (admin)
+      operationId: replaceExam
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/AgendaUjianInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Ubah agenda ujian (admin)
+      operationId: updateExam
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/AgendaUjianInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Hapus agenda ujian (admin)
+      operationId: deleteExam
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/materis:
+    get:
+      summary: Daftar materi yang terlihat
+      operationId: listMaterials
+      parameters:
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [File, Link]
+      responses:
+        '200':
+          $ref: '#/components/responses/SimplePage'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    post:
+      summary: Tambah materi (lampiran opsional)
+      operationId: createMaterial
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/MateriCreateInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedData'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/materis/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Lihat materi yang terlihat
+      operationId: getMaterial
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Ganti materi milik sendiri atau yang dapat dikelola admin
+      operationId: replaceMaterial
+      description: Untuk multipart, kirim POST dengan field _method=PATCH agar unggahan file terbaca PHP.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/MateriUpdateInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Ubah materi milik sendiri atau yang dapat dikelola admin
+      operationId: updateMaterial
+      description: Untuk multipart, kirim POST dengan field _method=PATCH agar unggahan file terbaca PHP.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/MateriUpdateInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Hapus materi milik sendiri atau yang dapat dikelola admin
+      operationId: deleteMaterial
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/materis/{id}/download:
+    get:
+      summary: Unduh lampiran materi privat
+      operationId: downloadMaterial
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/Download'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tugas:
+    get:
+      summary: Daftar tugas dan status pribadi mahasiswa
+      operationId: listAssignments
+      parameters:
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/CourseId'
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - name: source
+          in: query
+          description: Hanya mahasiswa; tidak berlaku untuk admin.
+          schema:
+            type: string
+            enum: [shared, personal]
+        - name: status
+          in: query
+          description: Hanya mahasiswa; tidak berlaku untuk admin.
+          schema:
+            type: string
+            enum: ['Belum dikerjakan', 'Sudah dikerjakan', 'Selesai']
+      responses:
+        '200':
+          $ref: '#/components/responses/SimplePage'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    post:
+      summary: Tambah tugas
+      operationId: createAssignment
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/TugasCreateInput'
+      responses:
+        '201':
+          $ref: '#/components/responses/CreatedData'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/tugas/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Lihat tugas yang terlihat
+      operationId: getAssignment
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      summary: Ganti tugas milik sendiri atau yang dapat dikelola admin
+      operationId: replaceAssignment
+      description: Untuk multipart, kirim POST dengan field _method=PATCH agar unggahan file terbaca PHP.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/TugasUpdateInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    patch:
+      summary: Ubah tugas milik sendiri atau yang dapat dikelola admin
+      operationId: updateAssignment
+      description: Untuk multipart, kirim POST dengan field _method=PATCH agar unggahan file terbaca PHP.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        $ref: '#/components/requestBodies/TugasUpdateInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      summary: Hapus tugas milik sendiri atau yang dapat dikelola admin
+      operationId: deleteAssignment
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v1/tugas/{id}/status:
+    patch:
+      summary: Ubah status pengerjaan pribadi (mahasiswa)
+      operationId: updateAssignmentStatus
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        $ref: '#/components/requestBodies/TugasStatusInput'
+      responses:
+        '200':
+          $ref: '#/components/responses/SuccessData'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /v1/tugas/{id}/download:
+    get:
+      summary: Unduh lampiran tugas privat
+      operationId: downloadAssignment
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          $ref: '#/components/responses/Download'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: laravel_session
+      description: Nama cookie aktual dapat diubah melalui SESSION_COOKIE.
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-XSRF-TOKEN
+      description: Token CSRF dari cookie XSRF-TOKEN atau endpoint /sanctum/csrf-cookie.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
+        maxLength: 255
+    CourseId:
+      name: course_id
+      in: query
+      schema:
+        type: integer
+    DateFrom:
+      name: date_from
+      in: query
+      schema:
+        type: string
+        format: date
+    DateTo:
+      name: date_to
+      in: query
+      schema:
+        type: string
+        format: date
+  requestBodies:
+    MataKuliahInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MataKuliahInput'
+    JadwalInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JadwalInput'
+    AgendaUjianInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AgendaUjianInput'
+    ProfileInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileInput'
+    PasswordInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PasswordInput'
+    StudentInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StudentInput'
+    MateriCreateInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MateriInput'
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/MateriCreateUpload'
+    MateriUpdateInput:
+      required: true
+      description: Payload lengkap; unggah file via POST multipart dengan _method=PATCH.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/MateriUpdateInput'
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/MateriUpdateUpload'
+    TugasCreateInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TugasInput'
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/TugasCreateUpload'
+    TugasUpdateInput:
+      required: true
+      description: Payload lengkap; unggah file via POST multipart dengan _method=PATCH.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TugasUpdateInput'
+        multipart/form-data:
+          schema:
+            $ref: '#/components/schemas/TugasUpdateUpload'
+    TugasStatusInput:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TugasStatusInput'
+  schemas:
+    DataEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+    CollectionEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    SimplePageEnvelope:
+      type: object
+      required: [data, current_page, per_page]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        current_page:
+          type: integer
+        first_page_url:
+          type: [string, 'null']
+        from:
+          type: [integer, 'null']
+        next_page_url:
+          type: [string, 'null']
+        path:
+          type: string
+        per_page:
+          type: integer
+        prev_page_url:
+          type: [string, 'null']
+        to:
+          type: [integer, 'null']
+    PaginatedEnvelope:
+      type: object
+      required: [data, current_page, last_page, per_page, total]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        current_page:
+          type: integer
+        first_page_url:
+          type: string
+        from:
+          type: [integer, 'null']
+        last_page:
+          type: integer
+        last_page_url:
+          type: string
+        links:
+          type: array
+          items:
+            type: object
+        next_page_url:
+          type: [string, 'null']
+        path:
+          type: string
+        per_page:
+          type: integer
+        prev_page_url:
+          type: [string, 'null']
+        to:
+          type: [integer, 'null']
+        total:
+          type: integer
+    DashboardEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [is_admin, summary, jadwal_hari_ini, tugas_mendekat, materi_terbaru, ujian_mendatang]
+          properties:
+            is_admin:
+              type: boolean
+            summary:
+              type: object
+              properties:
+                jumlah_mata_kuliah:
+                  type: integer
+                jumlah_tugas:
+                  type: integer
+                jumlah_tugas_mendekat:
+                  type: integer
+                jumlah_tugas_belum_selesai:
+                  type: [integer, 'null']
+                persentase_selesai:
+                  type: [integer, 'null']
+            jadwal_hari_ini:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            tugas_mendekat:
+              type: array
+              items:
+                $ref: '#/components/schemas/DashboardTask'
+            materi_terbaru:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            ujian_mendatang:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+    MataKuliahInput:
+      type: object
+      required: [nama, kode_mk, dosen, sks]
+      properties:
+        nama:
+          type: string
+          maxLength: 255
+        kode_mk:
+          type: string
+          maxLength: 255
+        dosen:
+          type: string
+          maxLength: 255
+        sks:
+          type: integer
+          minimum: 1
+    JadwalInput:
+      type: object
+      required: [id_mata_kuliah, hari, waktu_mulai, waktu_selesai, ruang, dosen, mode]
+      properties:
+        id_mata_kuliah:
+          type: integer
+        hari:
+          type: string
+          enum: [Senin, Selasa, Rabu, Kamis, Jumat, Sabtu, Minggu]
+        waktu_mulai:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+        waktu_selesai:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          description: Harus setelah waktu_mulai.
+        ruang:
+          type: string
+          maxLength: 255
+        dosen:
+          type: string
+          maxLength: 255
+        mode:
+          type: string
+          enum: [Offline, Online]
+        link_zoom:
+          type: [string, 'null']
+          maxLength: 255
+    AgendaUjianInput:
+      type: object
+      required: [id_mata_kuliah, jenis, tanggal, waktu_mulai, waktu_selesai, mode]
+      properties:
+        id_mata_kuliah:
+          type: integer
+        jenis:
+          type: string
+          enum: [UTS, UAS]
+        tanggal:
+          type: string
+          format: date
+        waktu_mulai:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+        waktu_selesai:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+          description: Harus setelah waktu_mulai.
+        ruang:
+          type: [string, 'null']
+          maxLength: 255
+        mode:
+          type: string
+          enum: [Offline, Online]
+        link_zoom:
+          type: [string, 'null']
+          format: uri
+          maxLength: 255
+          description: Wajib dan harus berupa URL jika mode Online.
+        catatan:
+          type: [string, 'null']
+          maxLength: 2000
+    ProfileInput:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+    PasswordInput:
+      type: object
+      required: [current_password, password, password_confirmation]
+      properties:
+        current_password:
+          type: string
+          format: password
+        password:
+          type: string
+          format: password
+        password_confirmation:
+          type: string
+          format: password
+    StudentInput:
+      type: object
+      required: [name, email]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: [string, 'null']
+          format: password
+        password_confirmation:
+          type: [string, 'null']
+          format: password
+    MateriInput:
+      type: object
+      required: [judul, pertemuan, tipe]
+      properties:
+        id_mata_kuliah:
+          type: [integer, 'null']
+        nama_mata_kuliah:
+          type: [string, 'null']
+          maxLength: 255
+          description: Wajib jika id_mata_kuliah tidak diberikan.
+        judul:
+          type: string
+          maxLength: 200
+        pertemuan:
+          type: string
+          maxLength: 255
+        tipe:
+          type: string
+          enum: [File, Link]
+        detail:
+          type: [string, 'null']
+          maxLength: 255
+          description: Wajib jika file tidak dikirim.
+    MateriCreateUpload:
+      allOf:
+        - $ref: '#/components/schemas/MateriInput'
+        - type: object
+          properties:
+            file:
+              type: string
+              format: binary
+              description: PDF, DOC, DOCX, PPT, atau PPTX; maksimal 20 MB.
+    MateriUpdateInput:
+      allOf:
+        - $ref: '#/components/schemas/MateriInput'
+        - type: object
+          properties:
+            remove_file:
+              type: boolean
+              default: false
+    MateriUpdateUpload:
+      allOf:
+        - $ref: '#/components/schemas/MateriUpdateInput'
+        - type: object
+          properties:
+            file:
+              type: string
+              format: binary
+              description: PDF, DOC, DOCX, PPT, atau PPTX; maksimal 20 MB.
+    TugasInput:
+      type: object
+      required: [id_mata_kuliah, judul, deskripsi, deadline, prioritas]
+      properties:
+        id_mata_kuliah:
+          type: integer
+        judul:
+          type: string
+          maxLength: 255
+        deskripsi:
+          type: string
+        deadline:
+          type: string
+          format: date
+        prioritas:
+          type: string
+          enum: [Tinggi, Sedang, Rendah]
+    TugasCreateUpload:
+      allOf:
+        - $ref: '#/components/schemas/TugasInput'
+        - type: object
+          properties:
+            file:
+              type: string
+              format: binary
+              description: PDF, DOC, DOCX, PPT, atau PPTX; maksimal 20 MB.
+    TugasUpdateInput:
+      allOf:
+        - $ref: '#/components/schemas/TugasInput'
+        - type: object
+          properties:
+            remove_file:
+              type: boolean
+              default: false
+    TugasUpdateUpload:
+      allOf:
+        - $ref: '#/components/schemas/TugasUpdateInput'
+        - type: object
+          properties:
+            file:
+              type: string
+              format: binary
+              description: PDF, DOC, DOCX, PPT, atau PPTX; maksimal 20 MB.
+    TugasStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: ['Belum dikerjakan', 'Sudah dikerjakan', 'Selesai']
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    DashboardTask:
+      type: object
+      properties:
+        id:
+          type: integer
+        judul:
+          type: string
+        deadline:
+          type: string
+          format: date
+        prioritas:
+          type: string
+          enum: [Tinggi, Sedang, Rendah]
+        course_name:
+          type: string
+        is_admin_shared:
+          type: boolean
+  responses:
+    SuccessData:
+      description: Resource dikembalikan dalam properti data.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DataEnvelope'
+    CreatedData:
+      description: Resource berhasil dibuat.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DataEnvelope'
+    Collection:
+      description: Daftar resource dalam properti data.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CollectionEnvelope'
+    SimplePage:
+      description: Simple pagination Laravel, default 12 item per halaman kecuali disebutkan lain.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SimplePageEnvelope'
+    Paginated:
+      description: Pagination Laravel dengan total, digunakan untuk daftar mahasiswa.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaginatedEnvelope'
+    NoContent:
+      description: Berhasil; body kosong.
+    Download:
+      description: File lampiran privat.
+      content:
+        application/octet-stream:
+          schema:
+            type: string
+            format: binary
+    Unauthorized:
+      description: Sesi tidak terautentikasi atau email belum diverifikasi.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Pengguna tidak memiliki izin untuk tindakan ini.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Data tidak ditemukan atau tidak terlihat oleh pengguna.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Data masih digunakan dan tidak dapat dihapus.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Data tidak lolos validasi.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
